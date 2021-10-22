@@ -58,7 +58,7 @@ impl ContractArgs {
 
 #[ext_contract(ext_self)]
 pub trait ExtSelf {
-    fn callback_verify_contract_name(#[callback] val: bool, tags: Tags) -> bool;
+    fn callback_verify_contract_name(#[callback] val: bool, tags: Option<Tags>) -> bool;
 }
 
 #[near_bindgen]
@@ -72,7 +72,7 @@ impl NearApps {
     //     }
     // }
 
-    pub fn call(&self, tags: Tags, contract_name: AccountId, args: ContractArgs) {
+    pub fn call(&self, tags: Option<Tags>, contract_name: AccountId, args: ContractArgs) {
         self.verify_tags(&tags);
         if self.verify_contract(&contract_name) {
             Promise::new(contract_name)
@@ -98,10 +98,10 @@ impl NearApps {
         }
     }
 
-    fn verify_tags(&self, _tags: &Tags) {
+    fn verify_tags(&self, tags: &Option<Tags>) {
         if self.any_tags {
             return;
-        } else if false {
+        } else if let None = tags {
             env::panic_str("bad tags");
         }
     }
@@ -127,12 +127,14 @@ impl NearApps {
     }
 
     #[private]
-    pub fn callback_verify_contract_name(&mut self, #[callback] val: bool, tags: Tags) -> bool {
-        let tags = format!(
-            "Person: {}\nCompany: {}\nPurpose: {}",
-            tags.person, tags.company, tags.purpose
-        );
-        env::log_str(&tags);
+    pub fn callback_verify_contract_name(&mut self, #[callback] val: bool, tags: Option<Tags>) -> bool {
+        if let Some(tags) = tags {
+            let tags = format!(
+                "Person: {}\nCompany: {}\nPurpose: {}",
+                tags.person, tags.company, tags.purpose
+            );
+            env::log_str(&tags);
+        }
         val
     }
 

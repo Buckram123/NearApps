@@ -52,11 +52,12 @@ fn simulate_successful_call() {
     let res = call!(
         master_account,
         near_apps.call(
+            Some(
             Tags::new(
                 "Mike".to_string(),
                 "Near.org".to_string(),
                 "testing".to_string(),
-            ),
+            )),
             status_id.clone(),
             ContractArgs::new("set_status".to_string(), message.to_string(),)
         ),
