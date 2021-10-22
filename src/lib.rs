@@ -72,14 +72,15 @@ impl NearApps {
     //     }
     // }
 
-    pub fn call(&self, tags: Option<Tags>, contract_name: AccountId, args: ContractArgs) {
+    #[payable]
+    pub fn call(&mut self, tags: Option<Tags>, contract_name: AccountId, args: ContractArgs) {
         self.verify_tags(&tags);
         if self.verify_contract(&contract_name) {
             Promise::new(contract_name)
                 .function_call(
                     args.function_name,
                     args.params.into_bytes(),
-                    0,
+                    env::attached_deposit(),
                     env::prepaid_gas() / 3,
                 )
                 .then(ext_self::callback_verify_contract_name(
