@@ -1,7 +1,10 @@
-use near_sdk::{PendingContractTx, env};
 use near_sdk::json_types::U128;
 use near_sdk::AccountId;
-use near_sdk_sim::{ContractAccount, DEFAULT_GAS, STORAGE_AMOUNT, UserAccount, call, deploy, init_simulator, lazy_static_include::syn::token::Use, to_yocto, view};
+use near_sdk::{env, PendingContractTx};
+use near_sdk_sim::{
+    call, deploy, init_simulator, lazy_static_include::syn::token::Use, to_yocto, view,
+    ContractAccount, UserAccount, DEFAULT_GAS, STORAGE_AMOUNT,
+};
 
 extern crate near_apps;
 use near_apps::{ContractArgs, NearAppsContract, Tags};
@@ -11,7 +14,12 @@ near_sdk_sim::lazy_static_include::lazy_static_include_bytes! {
     TEST_FILE_BYTES => "tests/status_message.wasm",
 }
 
-fn init() -> (UserAccount, ContractAccount<NearAppsContract>, UserAccount, UserAccount) {
+fn init() -> (
+    UserAccount,
+    ContractAccount<NearAppsContract>,
+    UserAccount,
+    UserAccount,
+) {
     let mut genesis = near_sdk_sim::runtime::GenesisConfig::default();
     genesis.gas_limit = u64::MAX;
     genesis.gas_price = 0;
@@ -49,13 +57,13 @@ fn simulate_successful_call() {
     let res = call!(
         near_apps.user_account,
         near_apps.add_contract(status_id.clone()),
-        gas = DEFAULT_GAS);
+        gas = DEFAULT_GAS
+    );
     println!("SIMPLE CALL: {:#?}", res.promise_results());
     let res = call!(
         master_account,
         near_apps.call(
-            Some(
-            Tags::new(
+            Some(Tags::new(
                 "Mike".to_string(),
                 "Near.org".to_string(),
                 "testing".to_string(),
