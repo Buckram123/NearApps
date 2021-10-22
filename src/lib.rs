@@ -1,8 +1,8 @@
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::collections::LookupSet;
-use near_sdk::json_types::U128;
 use near_sdk::serde::{Deserialize, Serialize};
-use near_sdk::{env, ext_contract, near_bindgen, AccountId, PanicOnDefault, Promise};
+use near_sdk::serde_json::json;
+use near_sdk::{AccountId, Promise, PromiseResult, env, ext_contract, near_bindgen};
 
 #[near_bindgen]
 #[derive(BorshDeserialize, BorshSerialize)]
@@ -22,7 +22,7 @@ impl Default for NearApps {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 #[serde(crate = "near_sdk::serde")]
 pub struct Tags {
     person: String,
@@ -56,11 +56,6 @@ impl ContractArgs {
     }
 }
 
-#[ext_contract(ext_self)]
-pub trait ExtSelf {
-    fn callback_verify_contract_name(#[callback] val: bool, tags: Option<Tags>) -> bool;
-}
-
 #[near_bindgen]
 impl NearApps {
     // #[init]
@@ -76,19 +71,19 @@ impl NearApps {
     pub fn call(&mut self, tags: Option<Tags>, contract_name: AccountId, args: ContractArgs) {
         self.verify_tags(&tags);
         if self.verify_contract(&contract_name) {
-            Promise::new(contract_name)
-                .function_call(
-                    args.function_name,
-                    args.params.into_bytes(),
+            let p0 = env::promise_create(contract_name,
+                    &args.function_name,
+                    &args.params.into_bytes(),
                     env::attached_deposit(),
                     env::prepaid_gas() / 3,
-                )
-                .then(ext_self::callback_verify_contract_name(
-                    tags,
-                    env::current_account_id(),
-                    0,
+                );
+            env::promise_then(p0,
+                env::current_account_id(),
+                "check_promise",
+                json!({"tags":tags}).to_string().as_bytes(),
+                0,
                     env::prepaid_gas() / 3,
-                ));
+                );
         }
     }
 
@@ -128,15 +123,19 @@ impl NearApps {
     }
 
     #[private]
-    pub fn callback_verify_contract_name(&mut self, #[callback] val: bool, tags: Option<Tags>) -> bool {
-        if let Some(tags) = tags {
-            let tags = format!(
-                "Person: {}\nCompany: {}\nPurpose: {}",
-                tags.person, tags.company, tags.purpose
-            );
-            env::log_str(&tags);
-        }
-        val
+    pub fn check_promise(&mut self, tags: Option<Tags>) {
+        match env::promise_result(0) {
+            PromiseResult::Successful(_) => {
+                if let Some(tags) = tags {
+                    let tags = format!(
+                        "Person: {}\nCompany: {}\nPurpose: {}",
+                        tags.person, tags.company, tags.purpose
+                    );
+                    env::log_str(&tags);
+                }
+            }
+            _ => env::panic_str("Promise with index 0 failed"),
+        };
     }
 
 }
